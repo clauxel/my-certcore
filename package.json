@@ -1,0 +1,16 @@
+{
+  "name": "certcore",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && node dev-server.mjs",
+    "deploy:pages": "npm run build && wrangler pages deploy out --project-name=my-certcore",
+    "deploy:worker": "npm run build && wrangler deploy --keep-vars --config wrangler.worker.toml"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "wrangler": "^4.90.0"
+  }
+}
