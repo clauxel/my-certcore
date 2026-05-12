@@ -1576,7 +1576,7 @@ async function main() {
   await writeFile(path.join(assetsDir, 'analytics.js'), analyticsJs)
   await writeFile(path.join(outDir, 'sitemap.xml'), sitemapXml())
   await writeFile(path.join(outDir, 'robots.txt'), robotsTxt())
-  await writeFile(path.join(outDir, 'BingSiteAuth.xml'), '<?xml version="1.0"?><users><user>pending</user></users>\n')
+  await writeFile(path.join(outDir, 'BingSiteAuth.xml'), '<?xml version="1.0"?><users><user>94D388E2CA0B71EC5A04D17A6A46E444</user></users>\n')
 
   await writePage(
     '/',
