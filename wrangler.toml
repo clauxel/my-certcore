@@ -7,6 +7,8 @@ APP_ORIGIN = "https://certcore.space"
 CREEM_API_BASE = "https://api.creem.io"
 CREEM_ENV = "live"
 
-[[kv_namespaces]]
-binding = "ANALYTICS_KV"
-id = "a0d8c71c354f49e3906c71ff5af32448"
+[[d1_databases]]
+binding = "DB"
+# Shared production analytics D1. Rows are isolated by site_key.
+database_name = "openclaw-launch"
+database_id = "5c31068a-d85a-4c83-9efe-01e2de1ad22b"

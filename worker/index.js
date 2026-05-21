@@ -1,3 +1,5 @@
+import { recordAnalyticsEvents } from './analytics.js'
+import { handleNowPaymentsCheckout } from './nowpayments.js'
 const CANONICAL_ORIGIN = 'https://certcore.space'
 const CANONICAL_HOSTS = new Set(['certcore.space', 'www.certcore.space'])
 const ANNUAL_DISCOUNT_MULTIPLIER = 0.5
@@ -107,11 +109,14 @@ function isLocalDevRequest(request) {
 }
 
 function maybeRedirectToHttps(requestUrl, request) {
-  if (isLocalDevRequest(request)) return null
-  if (requestUrl.protocol !== 'https:' && CANONICAL_HOSTS.has(requestUrl.hostname)) {
+  if (typeof isLocalDevRequest === 'function' && isLocalDevRequest(request)) return null
+  const canonicalUrl = new URL(CANONICAL_ORIGIN)
+  const isKnownHost = typeof CANONICAL_HOSTS !== 'undefined' && CANONICAL_HOSTS.has(requestUrl.hostname)
+  if (isKnownHost && (requestUrl.protocol !== 'https:' || requestUrl.hostname !== canonicalUrl.hostname)) {
     const redirectUrl = new URL(requestUrl)
     redirectUrl.protocol = 'https:'
-    return Response.redirect(redirectUrl.toString(), 308)
+    redirectUrl.hostname = canonicalUrl.hostname
+    return Response.redirect(redirectUrl.toString(), 301)
   }
   return null
 }
@@ -304,7 +309,7 @@ export function handleRuntime(request, requestUrl = new URL(request.url)) {
       defaultPlan: 'studio',
       defaultBilling: 'annual',
       annualDiscount: '50%',
-      analytics: 'first-party-kv',
+      analytics: 'cloudflare-d1',
       ts: Date.now(),
     },
     200,
@@ -347,30 +352,17 @@ export async function handleAnalytics(request, env) {
   let persisted = false
 
   try {
-    if (env?.ANALYTICS_KV?.put && events.length) {
-      const batchId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`
-      const day = receivedAt.slice(0, 10)
-      const hour = receivedAt.slice(11, 13)
-      await env.ANALYTICS_KV.put(
-        `events/${day}/${hour}/${batchId}.json`,
-        JSON.stringify({
-          site: 'certcore.space',
-          product: 'certcore',
-          receivedAt,
-          country: request.headers.get('CF-IPCountry') || null,
-          accepted: events.length,
-          events,
-        }),
-        { expirationTtl: 60 * 60 * 24 * 180 },
-      )
-      persisted = true
-    }
+    const result = await recordAnalyticsEvents(env, events, {
+      siteKey: 'certcore',
+      requestUrl: new URL(request.url),
+    })
+    persisted = result.persisted
   } catch (error) {
     console.log(JSON.stringify({ type: 'analytics_store_error', site: 'certcore.space', message: String(error?.message || error) }))
   }
 
   console.log(JSON.stringify({ type: 'analytics', site: 'certcore.space', accepted: events.length, persisted }))
-  return jsonResponse({ ok: true, accepted: events.length, persisted, store: persisted ? 'kv' : 'console' }, 202, request)
+  return jsonResponse({ ok: true, accepted: events.length, persisted, store: persisted ? 'd1' : 'console' }, 202, request)
 }
 
 export function buildSitemapXml() {
@@ -412,6 +404,14 @@ export function handleRobots(request) {
   return textResponse(buildRobotsTxt(), request)
 }
 
+function noIndexNotFoundResponse(request) {
+  const headers = securityHeaders(request)
+  headers.set('Content-Type', 'text/html; charset=utf-8')
+  headers.set('Cache-Control', 'no-store')
+  headers.set('X-Robots-Tag', 'noindex, nofollow')
+  return new Response('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Page not found</title></head><body><main><h1>Page not found</h1><p>This URL is not a public page for this product.</p></main></body></html>', { status: 404, headers })
+}
+
 async function fetchAsset(request, env) {
   if (!env?.SITE_ASSETS?.fetch) {
     return new Response('Cloudflare asset binding is unavailable.', {
@@ -422,6 +422,8 @@ async function fetchAsset(request, env) {
 
   const requestUrl = new URL(request.url)
   const normalizedPath = requestUrl.pathname.replace(/\/+$/, '') || '/'
+
+  if (!staticAssetPaths.has(normalizedPath) && !/\.[a-z0-9]+$/i.test(normalizedPath)) return noIndexNotFoundResponse(request)
 
   if (staticAssetPaths.has(normalizedPath)) {
     const assetUrl = new URL(request.url)
@@ -442,6 +444,18 @@ export async function handleRequest(request, env) {
   const requestUrl = new URL(request.url)
 
   if (request.method === 'OPTIONS') return handleOptions(request)
+  if (requestUrl.pathname === '/api/nowpayments-checkout') {
+    return handleNowPaymentsCheckout(request, env, {
+      plans: planCatalog,
+      defaultPlanId: 'studio',
+      siteName: 'certcore',
+      siteKey: 'certcore',
+      annualDiscountMultiplier: typeof ANNUAL_DISCOUNT_MULTIPLIER !== 'undefined'
+        ? ANNUAL_DISCOUNT_MULTIPLIER
+        : (typeof annualBillingMultiplier !== 'undefined' ? annualBillingMultiplier : 0.5),
+    })
+  }
+
   if (requestUrl.pathname === '/api/runtime') return handleRuntime(request, requestUrl)
   if (requestUrl.pathname === '/api/checkout') return handleCheckout(request, env, requestUrl)
   if (requestUrl.pathname === '/api/analytics/events') return handleAnalytics(request, env)
