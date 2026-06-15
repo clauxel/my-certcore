@@ -427,7 +427,7 @@ async function fetchAsset(request, env) {
 
   if (staticAssetPaths.has(normalizedPath)) {
     const assetUrl = new URL(request.url)
-    assetUrl.pathname = normalizedPath === '/' ? '/' : `${normalizedPath}/index.html`
+    assetUrl.pathname = normalizedPath === '/' ? '/' : `${normalizedPath}/`
     const assetResponse = await env.SITE_ASSETS.fetch(new Request(assetUrl.toString(), request))
     if (assetResponse.status !== 404) return withSecurityHeaders(assetResponse, request)
   }

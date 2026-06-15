@@ -354,10 +354,11 @@ function checkoutModal() {
             <small data-selected-note></small>
           </div>
           <button class="primary-action full" type="button" data-start-checkout>Checkout with Creem</button>
+          <button class="secondary-action full" type="button" data-start-wallet-checkout>Pay with USDC Wallet</button>
         </section>
         <section class="dialog-panel payment-panel" data-plan-step="payment" hidden>
           <p class="eyebrow">Secure payment</p>
-          <h2>Creem checkout opens in a centered window</h2>
+          <h2>Payment checkout opens in a centered window</h2>
           <p data-payment-status>Preparing checkout.</p>
           <div class="payment-facts">
             <span data-payment-plan>Studio annual</span>
@@ -1278,32 +1279,39 @@ const appJs = String.raw`
     var top = Math.max(0, Math.round((window.screen.height - height) / 2));
     return ['popup=yes', 'resizable=yes', 'scrollbars=yes', 'width=' + width, 'height=' + height, 'left=' + left, 'top=' + top].join(',');
   }
-  function writeLoading(popup) {
+  function providerLabel(provider) {
+    return provider === 'nowpayments' ? 'USDC wallet' : 'Creem';
+  }
+  function popupName(provider) {
+    return provider === 'nowpayments' ? 'certcore_nowpayments_checkout' : 'certcore_creem_checkout';
+  }
+  function writeLoading(popup, provider) {
     if (!popup || popup.closed) return;
     try {
       popup.document.open();
-      popup.document.write('<!doctype html><html><head><title>CertCore checkout</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#061116;color:#f5fbfd;font-family:Inter,Arial,sans-serif}main{text-align:center;max-width:360px;padding:24px}.dot{width:38px;height:38px;border:4px solid rgba(103,232,249,.25);border-top-color:#67e8f9;border-radius:50%;animation:s 1s linear infinite;margin:0 auto 18px}@keyframes s{to{transform:rotate(360deg)}}p{color:#b7c8ce;line-height:1.6}</style></head><body><main><div class="dot"></div><h1>Opening Creem checkout</h1><p>Your CertCore payment window is being prepared securely.</p></main></body></html>');
+      popup.document.write('<!doctype html><html><head><title>CertCore checkout</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#061116;color:#f5fbfd;font-family:Inter,Arial,sans-serif}main{text-align:center;max-width:360px;padding:24px}.dot{width:38px;height:38px;border:4px solid rgba(103,232,249,.25);border-top-color:#67e8f9;border-radius:50%;animation:s 1s linear infinite;margin:0 auto 18px}@keyframes s{to{transform:rotate(360deg)}}p{color:#b7c8ce;line-height:1.6}</style></head><body><main><div class="dot"></div><h1>Opening ' + providerLabel(provider) + ' checkout</h1><p>Your CertCore payment window is being prepared securely.</p></main></body></html>');
       popup.document.close();
     } catch {}
   }
-  function openShell() {
-    var popup = window.open('', 'certcore_creem_checkout', popupFeatures());
-    if (popup) { popup.focus(); writeLoading(popup); }
+  function openShell(provider) {
+    var popup = window.open('', popupName(provider), popupFeatures());
+    if (popup) { popup.focus(); writeLoading(popup, provider); }
     return popup;
   }
-  async function startCheckout() {
-    var popup = openShell();
+  async function startCheckout(provider) {
+    provider = provider === 'nowpayments' ? 'nowpayments' : 'creem';
+    var popup = openShell(provider);
     state.popup = popup;
     state.paymentOpen = true;
     setStep('payment');
     var status = document.querySelector('[data-payment-status]');
     var reopen = document.querySelector('[data-reopen-checkout]');
-    if (status) status.textContent = 'Creating the secure Creem checkout. Keep this page open.';
+    if (status) status.textContent = 'Creating the secure ' + providerLabel(provider) + ' checkout. Keep this page open.';
     if (reopen) reopen.hidden = true;
     renderPrices();
-    track('checkout_requested', { plan: state.plan, billing: state.billing, source: state.source });
+    track('checkout_requested', { plan: state.plan, billing: state.billing, source: state.source, provider: provider });
     try {
-      var response = await fetch('/api/checkout', {
+      var response = await fetch(provider === 'nowpayments' ? '/api/nowpayments-checkout' : '/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId: state.plan, billing: state.billing, source: state.source }),
@@ -1313,9 +1321,9 @@ const appJs = String.raw`
       if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error || 'Checkout could not be created.');
       state.checkoutUrl = payload.checkoutUrl;
       if (popup && !popup.closed) popup.location.assign(payload.checkoutUrl);
-      if (reopen) { reopen.href = payload.checkoutUrl; reopen.hidden = false; }
-      if (status) status.textContent = 'The centered Creem payment window is open. Finish payment there; this page will stay ready behind it.';
-      track('checkout_opened', { plan: state.plan, billing: state.billing, provider: 'creem' });
+      if (reopen) { reopen.href = payload.checkoutUrl; reopen.target = popupName(provider); reopen.hidden = false; }
+      if (status) status.textContent = 'The centered ' + providerLabel(provider) + ' payment window is open. Finish payment there; this page will stay ready behind it.';
+      track('checkout_opened', { plan: state.plan, billing: state.billing, provider: provider });
     } catch (error) {
       if (popup && !popup.closed) popup.close();
       if (status) status.textContent = 'Checkout could not be created yet. Please try again in a moment.';
@@ -1428,7 +1436,9 @@ const appJs = String.raw`
     button.addEventListener('click', function () { state.plan = button.getAttribute('data-modal-plan') || 'studio'; renderPrices(); track('plan_selected', { plan: state.plan, billing: state.billing }); });
   });
   var start = document.querySelector('[data-start-checkout]');
-  if (start) start.addEventListener('click', startCheckout);
+  if (start) start.addEventListener('click', function () { startCheckout('creem'); });
+  var walletStart = document.querySelector('[data-start-wallet-checkout]');
+  if (walletStart) walletStart.addEventListener('click', function () { startCheckout('nowpayments'); });
   var back = document.querySelector('[data-back-to-plans]');
   if (back) back.addEventListener('click', function () { setStep('plans'); renderPrices(); });
   var scopeForm = document.getElementById('scope-tool');

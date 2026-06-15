@@ -1,0 +1,21 @@
+# Cyber Resilience Act Compliance Platform
+
+Prepare for the Cyber Resilience Act with a 30-minute CRA scope checker, SBOM generator, CVE dashboard, 72-hour vulnerability reporting workflow, EU Declaration of Conformity drafts, and compliance calendar.
+
+Website: https://certcore.space/
+Pricing: https://certcore.space/pricing/
+Checkout: https://certcore.space/checkout/
+Support: support@aigeamy.com
+Type: Hosted SaaS workflow product
+
+Problem:
+- Teams need a quotable product definition, pricing path, evidence trail, and checkout route.
+
+Solution:
+- Cyber Resilience Act Compliance Platform provides a hosted workflow with public pricing, structured evidence, support contact, and report or receipt outputs.
+
+Useful pages:
+- Home: https://certcore.space/
+- Pricing: https://certcore.space/pricing/
+- Resources: https://certcore.space/resources/
+- Sitemap: https://certcore.space/sitemap.xml
