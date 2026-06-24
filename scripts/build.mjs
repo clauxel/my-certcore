@@ -353,7 +353,7 @@ function checkoutModal() {
             <strong data-selected-price></strong>
             <small data-selected-note></small>
           </div>
-          <button class="primary-action full" type="button" data-start-checkout>Checkout with Creem</button>
+          <button class="primary-action full" type="button" data-start-checkout>Checkout with Polar</button>
           <button class="secondary-action full" type="button" data-start-wallet-checkout>Pay with USDC Wallet</button>
         </section>
         <section class="dialog-panel payment-panel" data-plan-step="payment" hidden>
@@ -365,7 +365,7 @@ function checkoutModal() {
             <span data-payment-billing>Annual - 50% off</span>
             <span>Original page stays open</span>
           </div>
-          <a class="primary-action full" href="#" target="certcore_creem_checkout" rel="noopener" data-reopen-checkout hidden>Reopen checkout</a>
+          <a class="primary-action full" href="#" target="certcore_polar_checkout" rel="noopener" data-reopen-checkout hidden>Reopen checkout</a>
           <button class="secondary-action full" type="button" data-back-to-plans>Back to plans</button>
         </section>
         <aside class="dialog-aside">
@@ -669,7 +669,7 @@ function privacyBody() {
       <p>Last updated: 12 May 2026</p>
       <p>CertCore collects only the information needed to operate the site, process checkout, provide CRA readiness workflows, maintain security, and support customers.</p>
       <h2>Information we process</h2>
-      <p>We may process account details, business contact information, product metadata you submit, dependency or SBOM data, checkout metadata, analytics events, device information, and support messages. Payment card details are handled by Creem or another payment processor and are not stored by CertCore.</p>
+      <p>We may process account details, business contact information, product metadata you submit, dependency or SBOM data, checkout metadata, analytics events, device information, and support messages. Payment card details are handled by Polar or another payment processor and are not stored by CertCore.</p>
       <h2>How we use information</h2>
       <p>We use information to deliver the service, create checkout sessions, operate analytics, improve conversion and product reliability, detect abuse, maintain audit logs, answer support requests, and comply with applicable legal obligations.</p>
       <h2>Security and retention</h2>
@@ -692,7 +692,7 @@ function termsBody() {
       <h2>Customer responsibility</h2>
       <p>You are responsible for product facts, legal interpretation, conformity decisions, security review, vulnerability disclosure decisions, submissions to authorities, and final document approval. Outputs must be reviewed by qualified personnel before use.</p>
       <h2>Payments</h2>
-      <p>Paid plans are processed through Creem or another payment provider. Annual billing may be discounted compared with monthly billing. Fees are non-refundable except where required by law or expressly agreed in writing.</p>
+      <p>Paid plans are processed through Polar or another payment provider. Annual billing may be discounted compared with monthly billing. Fees are non-refundable except where required by law or expressly agreed in writing.</p>
       <h2>No warranties</h2>
       <p>The service is provided as is and as available. To the fullest extent permitted by law, CertCore disclaims warranties of merchantability, fitness for a particular purpose, non-infringement, uninterrupted operation, error-free output, legal sufficiency, and regulatory outcome.</p>
       <h2>Liability limits</h2>
@@ -1280,10 +1280,10 @@ const appJs = String.raw`
     return ['popup=yes', 'resizable=yes', 'scrollbars=yes', 'width=' + width, 'height=' + height, 'left=' + left, 'top=' + top].join(',');
   }
   function providerLabel(provider) {
-    return provider === 'nowpayments' ? 'USDC wallet' : 'Creem';
+    return provider === 'polar' ? 'USDC wallet' : 'Polar';
   }
   function popupName(provider) {
-    return provider === 'nowpayments' ? 'certcore_nowpayments_checkout' : 'certcore_creem_checkout';
+    return provider === 'polar' ? 'certcore_polar_checkout' : 'certcore_polar_checkout';
   }
   function writeLoading(popup, provider) {
     if (!popup || popup.closed) return;
@@ -1299,7 +1299,7 @@ const appJs = String.raw`
     return popup;
   }
   async function startCheckout(provider) {
-    provider = provider === 'nowpayments' ? 'nowpayments' : 'creem';
+    provider = provider === 'polar' ? 'polar' : 'polar';
     var popup = openShell(provider);
     state.popup = popup;
     state.paymentOpen = true;
@@ -1311,7 +1311,7 @@ const appJs = String.raw`
     renderPrices();
     track('checkout_requested', { plan: state.plan, billing: state.billing, source: state.source, provider: provider });
     try {
-      var response = await fetch(provider === 'nowpayments' ? '/api/nowpayments-checkout' : '/api/checkout', {
+      var response = await fetch(provider === 'polar' ? '/api/polar-checkout' : '/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId: state.plan, billing: state.billing, source: state.source }),
@@ -1436,9 +1436,9 @@ const appJs = String.raw`
     button.addEventListener('click', function () { state.plan = button.getAttribute('data-modal-plan') || 'studio'; renderPrices(); track('plan_selected', { plan: state.plan, billing: state.billing }); });
   });
   var start = document.querySelector('[data-start-checkout]');
-  if (start) start.addEventListener('click', function () { startCheckout('creem'); });
+  if (start) start.addEventListener('click', function () { startCheckout('polar'); });
   var walletStart = document.querySelector('[data-start-wallet-checkout]');
-  if (walletStart) walletStart.addEventListener('click', function () { startCheckout('nowpayments'); });
+  if (walletStart) walletStart.addEventListener('click', function () { startCheckout('polar'); });
   var back = document.querySelector('[data-back-to-plans]');
   if (back) back.addEventListener('click', function () { setStep('plans'); renderPrices(); });
   var scopeForm = document.getElementById('scope-tool');

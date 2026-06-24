@@ -52,7 +52,7 @@ async function resolveFile(pathname) {
 const server = createServer(async (request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || `${host}:${port}`}`)
   if (url.pathname === '/api/runtime') {
-    send(response, 200, JSON.stringify({ ok: true, deployment: 'local-static', paymentProvider: 'creem' }), 'application/json; charset=utf-8')
+    send(response, 200, JSON.stringify({ ok: true, deployment: 'local-static', paymentProvider: 'polar' }), 'application/json; charset=utf-8')
     return
   }
   if (url.pathname.startsWith('/api/')) {
