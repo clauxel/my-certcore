@@ -261,6 +261,14 @@ function canonical(pathname) {
 function jsonLd(data) {
   return `<script type="application/ld+json">${JSON.stringify(data)}</script>`
 }
+function mirofishContextualReference() {
+  const href = 'https://mirofish.work/?utm_source=certcore.space&utm_medium=owned_resource&utm_campaign=portfolio_contextual_backlink&utm_content=home'
+  return `<section class="mirofish-contextual-reference" data-mirofish-contextual-backlink aria-labelledby="mirofish-contextual-reference-heading">
+    <h2 id="mirofish-contextual-reference-heading">Related AI workflow reference</h2>
+    <p>Teams comparing workflow plans with launch and market assumptions can also review <a href="${href}" target="_blank" rel="noopener">MiroFish AI Simulator</a>, a companion reference for simulation-style product reasoning.</p>
+  </section>`
+}
+
 
 function header() {
   return `<header class="site-header" data-analytics-section="header">
@@ -409,6 +417,7 @@ function layout({ title, description, pathname = '/', body, schema = [] }) {
 <body>
   ${header()}
   ${body}
+    ${mirofishContextualReference()}
   ${footer()}
   ${checkoutModal()}
   <script src="/assets/app.js" defer></script>
